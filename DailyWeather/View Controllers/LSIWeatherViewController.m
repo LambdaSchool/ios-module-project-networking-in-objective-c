@@ -10,6 +10,9 @@
 #import "LSIWeatherIcons.h"
 #import "LSIErrors.h"
 #import "LSILog.h"
+#import "LSIFileHelper.h"
+#import "LSICurrentForecast.h"
+#import "LSICardinalDirection.h"
 
 @interface LSIWeatherViewController () {
     BOOL _requestedLocation;
@@ -18,6 +21,18 @@
 @property CLLocationManager *locationManager;
 @property CLLocation *location;
 @property (nonatomic) CLPlacemark *placemark;
+@property (nonatomic) LSICurrentForecast *currentForecast;
+
+@property (strong, nonatomic) IBOutlet UIImageView *iconImageView;
+@property (strong, nonatomic) IBOutlet UILabel *locationLabel;
+@property (strong, nonatomic) IBOutlet UILabel *summaryLabel;
+@property (strong, nonatomic) IBOutlet UILabel *temperatureLabel;
+@property (strong, nonatomic) IBOutlet UILabel *windLabel;
+@property (strong, nonatomic) IBOutlet UILabel *feelsLikeLabel;
+@property (strong, nonatomic) IBOutlet UILabel *humidityLabel;
+@property (strong, nonatomic) IBOutlet UILabel *pressureLabel;
+@property (strong, nonatomic) IBOutlet UILabel *chanceOfRainLabel;
+@property (strong, nonatomic) IBOutlet UILabel *uvIndexLabel;
 
 @end
 
@@ -113,20 +128,36 @@
 
 - (void)requestWeatherForLocation:(CLLocation *)location {
     
-    // TODO: 1. Parse CurrentWeather.json from App Bundle and update UI
+    // Parse CurrentWeather.json from App Bundle and update UI
     
-    
-    
+    NSData *forecastData = loadFile(@"CurrentWeather.json", self.class);
+
+    NSError *jsonError = nil;
+    NSDictionary *forecastDictionary = [NSJSONSerialization JSONObjectWithData:forecastData options:0 error:&jsonError];
+
+    self.currentForecast = [[LSICurrentForecast alloc] initWithDictionary:forecastDictionary];
+    [self updateViews];
     
     // TODO: 2. Refactor and Parse Weather.json from App Bundle and update UI
 }
 
 - (void)updateViews {
     if (self.placemark) {
-        // TODO: Update the City, State label
+        // Update the City, State label
+        self.locationLabel.text = [NSString stringWithFormat:@"%@, %@", self.placemark.locality, self.placemark.country];
     }
     
-    // TODO: Update the UI based on the current forecast
+    // Update the UI based on the current forecast
+    self.iconImageView.image = [UIImage imageNamed:self.currentForecast.icon];
+    self.summaryLabel.text = self.currentForecast.summary;
+    self.temperatureLabel.text = [NSString stringWithFormat:@"%.0f°", self.currentForecast.temperature];
+    NSString *direction = [LSICardinalDirection directionForHeading:self.currentForecast.windBearing];
+    self.windLabel.text = [NSString stringWithFormat:@"%@ %.0f mph", direction, self.currentForecast.windSpeed];
+    self.feelsLikeLabel.text = [NSString stringWithFormat:@"%.0f°", self.currentForecast.apparentTemperature];
+    self.humidityLabel.text = [NSString stringWithFormat:@"%.0f%%", self.currentForecast.humidity];
+    self.pressureLabel.text = [NSString stringWithFormat:@"%.1f inHg", self.currentForecast.pressure];
+    self.chanceOfRainLabel.text = [NSString stringWithFormat:@"%.0f%%", self.currentForecast.precipProbability];
+    self.uvIndexLabel.text = [NSString stringWithFormat:@"%d", self.currentForecast.uvIndex];
 }
 
 @end
